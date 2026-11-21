@@ -1,0 +1,5 @@
+app:
+  healing:
+    enabled: false          # tests drive cycles explicitly
+  simulator:
+    seed-on-startup: false

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign in · HealPay AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="login-page">
+<main class="login-card">
+    <div class="brand big"><span class="brand-mark">✓</span><span>HealPay <strong>AI</strong></span></div>
+    <p class="muted">Self-healing payment balancing system</p>
+
+    <div class="flash err" th:if="${param.error}">Invalid username or password.</div>
+    <div class="flash ok" th:if="${param.logout}">You have been signed out.</div>
+
+    <form th:action="@{/login}" method="post" class="stack">
+        <label>Username <input type="text" name="username" autofocus required></label>
+        <label>Password <input type="password" name="password" required></label>
+        <button type="submit" class="btn primary">Sign in</button>
+    </form>
+    <p class="hint">Demo users: <code>admin / admin123</code> (can approve fixes) · <code>viewer / viewer123</code></p>
+</main>
+</body>
+</html>

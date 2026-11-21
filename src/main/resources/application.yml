@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# HealPay AI - default profile
+#   * H2 in-memory database (zero setup)
+#   * Rule-based "mock" AI (no API key needed)
+# Activate extra profiles with SPRING_PROFILES_ACTIVE, e.g. "postgres,claude".
+# ---------------------------------------------------------------------------
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework   # correct URLs behind Cloudflare Tunnel / Nginx
+
+spring:
+  application:
+    name: healpay
+  datasource:
+    url: jdbc:h2:mem:healpay;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  thymeleaf:
+    cache: false
+  ai:
+    model:
+      # "none" disables the Anthropic auto-configuration so the app starts without an API key.
+      # The "claude" profile switches this to "anthropic".
+      chat: none
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+app:
+  display-zone: ${DISPLAY_ZONE:Asia/Kolkata}
+  ai:
+    provider: mock               # mock | claude  (set by the "claude" profile)
+  healing:
+    enabled: ${HEALING_AUTO:true}            # false = only run cycles on demand (good for live demos)
+    auto-heal-limit: ${AUTO_HEAL_LIMIT:5000}  # INR - fee adjustments / links above this need a human
+    min-confidence: ${MIN_CONFIDENCE:0.80}    # below this a human must approve
+    cycle-interval-ms: ${HEAL_CYCLE_MS:30000}
+  recon:
+    expected-fee-rate: 0.02      # contracted MDR 2%
+    settlement-lag-hours: 24
+  simulator:
+    seed-on-startup: ${SEED_ON_STARTUP:true}
+    seed-count: 40
+    delayed-settlement-seconds: ${DELAYED_SETTLEMENT_SECONDS:90}
+  users:
+    admin-username: ${ADMIN_USER:admin}
+    admin-password: ${ADMIN_PASSWORD:admin123}
+    viewer-username: ${VIEWER_USER:viewer}
+    viewer-password: ${VIEWER_PASSWORD:viewer123}
+
+logging:
+  level:
+    com.healpay: INFO

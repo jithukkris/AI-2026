@@ -1,0 +1,16 @@
+# Cloudflare named tunnel config (permanent URL on your own domain).
+# Quick, no-account alternative for demos:   cloudflared tunnel --url http://localhost:8080
+#
+# Setup once:
+#   cloudflared tunnel login
+#   cloudflared tunnel create healpay
+#   cloudflared tunnel route dns healpay healpay.yourdomain.com
+# Then copy this file to ~/.cloudflared/config.yml, fill in the tunnel id, and run:
+#   sudo cloudflared service install
+tunnel: <TUNNEL-ID>
+credentials-file: /home/<user>/.cloudflared/<TUNNEL-ID>.json
+
+ingress:
+  - hostname: healpay.yourdomain.com
+    service: http://localhost:8080
+  - service: http_status:404

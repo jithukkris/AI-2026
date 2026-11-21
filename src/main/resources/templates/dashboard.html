@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments :: head('Dashboard')}"></head>
+<body data-page="dashboard">
+<header th:replace="~{fragments :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments :: flash}"></div>
+
+    <section class="hero">
+        <div>
+            <h1>Self-healing reconciliation</h1>
+            <p class="muted">Ledger ⇄ Gateway ⇄ Bank, checked continuously. AI diagnoses every mismatch,
+                safe fixes heal automatically, risky ones wait for you.</p>
+            <div class="loop">
+                <span class="step">1 · Detect</span><span class="arrow">→</span>
+                <span class="step ai">2 · Diagnose (AI)</span><span class="arrow">→</span>
+                <span class="step">3 · Decide (policy)</span><span class="arrow">→</span>
+                <span class="step">4 · Act</span><span class="arrow">→</span>
+                <span class="step">5 · Verify</span>
+            </div>
+        </div>
+        <div class="hero-actions">
+            <span class="badge" th:classappend="${aiSource == 'claude'} ? 'ai-live' : 'ai-mock'"
+                  th:text="${aiSource == 'claude'} ? 'AI: Claude (live)' : 'AI: rule-based mock'">AI</span>
+            <div sec:authorize="hasRole('ADMIN')" class="btn-row">
+                <form th:action="@{/admin/incidents}" method="post" class="inline">
+                    <button class="btn" type="submit">⚡ Inject demo incidents</button>
+                </form>
+                <form th:action="@{/admin/run}" method="post" class="inline">
+                    <button class="btn primary" type="submit">▶ Run healing now</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="kpis">
+        <div class="kpi">
+            <div class="kpi-label">Transactions</div>
+            <div class="kpi-value" data-kpi="totalTransactions" th:text="${summary.totalTransactions()}">0</div>
+            <div class="kpi-sub"><span data-kpi="balancedRate" th:text="${@fmt.percent(summary.balancedRate())}">0%</span> balanced</div>
+        </div>
+        <div class="kpi good">
+            <div class="kpi-label">Auto-healed by AI</div>
+            <div class="kpi-value" data-kpi="autoHealedByAi" th:text="${summary.autoHealedByAi()}">0</div>
+            <div class="kpi-sub"><span data-kpi="autoHealRate" th:text="${@fmt.percent(summary.autoHealRate())}">0%</span> needed no human</div>
+        </div>
+        <div class="kpi warn">
+            <div class="kpi-label">Awaiting approval</div>
+            <div class="kpi-value" data-kpi="awaitingApproval" th:text="${summary.awaitingApproval()}">0</div>
+            <div class="kpi-sub"><span data-kpi="fixedAfterApproval" th:text="${summary.fixedAfterApproval()}">0</span> approved so far</div>
+        </div>
+        <div class="kpi bad">
+            <div class="kpi-label">Active exceptions</div>
+            <div class="kpi-value" data-kpi="activeExceptions" th:text="${summary.activeExceptions()}">0</div>
+            <div class="kpi-sub"><span data-kpi="amountAtRiskInr" th:text="${@fmt.money(summary.amountAtRisk())}">₹0</span> at risk</div>
+        </div>
+    </section>
+
+    <section class="grid-2">
+        <div class="card">
+            <div class="card-head">
+                <h2>Needs your approval</h2>
+                <a th:href="@{/exceptions(state='AWAITING_APPROVAL')}">View all</a>
+            </div>
+            <p class="muted" th:if="${#lists.isEmpty(awaiting)}">Nothing waiting. The AI handled everything it safely could.</p>
+            <div class="approval" th:each="x : ${awaiting}">
+                <div class="approval-main">
+                    <div>
+                        <a th:if="${x.txnRef}" th:href="@{/transactions/{r}(r=${x.txnRef})}" th:text="${x.txnRef}">TXN</a>
+                        <span class="tag" th:text="${x.type}">TYPE</span>
+                        <strong th:text="${@fmt.money(x.amountImpact)}">₹</strong>
+                    </div>
+                    <div class="ai-line"><span class="ai-chip">AI</span> <span th:text="${x.aiRootCause}">root cause</span>
+                        → <em th:text="${x.proposedAction != null ? x.proposedAction.label : '-'}">action</em></div>
+                    <div class="muted small" th:text="${x.policyReason}">reason</div>
+                </div>
+                <div class="approval-actions" sec:authorize="hasRole('ADMIN')">
+                    <form th:action="@{/exceptions/{id}/approve(id=${x.id})}" method="post" class="inline">
+                        <input type="hidden" name="back" value="/">
+                        <button class="btn primary small" type="submit">Approve</button>
+                    </form>
+                    <form th:action="@{/exceptions/{id}/reject(id=${x.id})}" method="post" class="inline">
+                        <input type="hidden" name="back" value="/">
+                        <button class="btn small" type="submit">Reject</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head">
+                <h2>Live activity</h2>
+                <span class="muted small">updates in real time</span>
+            </div>
+            <ul class="feed" id="live-feed">
+                <li th:each="e : ${events}" th:classappend="${'actor-' + e.actor}">
+                    <span class="feed-time" th:text="${@fmt.shortTime(e.occurredAt)}">00:00</span>
+                    <span class="feed-stage" th:text="${e.stage}">STAGE</span>
+                    <a th:if="${e.txnRef}" th:href="@{/transactions/{r}(r=${e.txnRef})}" th:text="${e.txnRef}">TXN</a>
+                    <span class="feed-msg" th:text="${e.message}">message</span>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Status breakdown</h2>
+        <div class="status-bar">
+            <a th:href="@{/transactions(status='MATCHED')}" class="s-MATCHED">Matched <b data-kpi="matched" th:text="${summary.matched()}">0</b></a>
+            <a th:href="@{/transactions(status='HEALED')}" class="s-HEALED">Healed <b data-kpi="healed" th:text="${summary.healed()}">0</b></a>
+            <a th:href="@{/transactions(status='SETTLEMENT_PENDING')}" class="s-SETTLEMENT_PENDING">Settlement pending <b data-kpi="settlementPending" th:text="${summary.settlementPending()}">0</b></a>
+            <a th:href="@{/transactions(status='AWAITING_APPROVAL')}" class="s-AWAITING_APPROVAL">Awaiting approval <b th:text="${summary.awaitingApproval()}">0</b></a>
+            <a th:href="@{/transactions(status='MANUAL_REVIEW')}" class="s-MANUAL_REVIEW">Manual review <b data-kpi="manualReview" th:text="${summary.manualReview()}">0</b></a>
+            <a th:href="@{/transactions(status='MISMATCH')}" class="s-MISMATCH">Mismatch <b data-kpi="mismatch" th:text="${summary.mismatch()}">0</b></a>
+        </div>
+    </section>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

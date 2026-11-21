@@ -1,0 +1,39 @@
+# Local / server run: HealPay + PostgreSQL
+#   cp .env.example .env      (edit passwords, optionally add ANTHROPIC_API_KEY)
+#   docker compose up -d --build
+#   open http://localhost:8080
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: healpay
+      POSTGRES_USER: healpay
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-healpay}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healpay -d healpay"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-postgres}
+      DB_URL: jdbc:postgresql://db:5432/healpay
+      DB_USER: healpay
+      DB_PASSWORD: ${DB_PASSWORD:-healpay}
+
+volumes:
+  pgdata:

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments :: head(${d.transaction().txnRef})}"></head>
+<body data-page="transaction" th:attr="data-txn=${d.transaction().txnRef}">
+<header th:replace="~{fragments :: nav}"></header>
+<main class="container" th:with="t=${d.transaction()}">
+    <div th:replace="~{fragments :: flash}"></div>
+    <a th:href="@{/transactions}" class="muted small">← All transactions</a>
+
+    <section class="txn-head">
+        <div>
+            <h1 th:text="${t.txnRef}">TXN</h1>
+            <div class="muted">
+                <span th:text="${t.merchant}">merchant</span> ·
+                <span th:text="${t.paymentMode}">UPI</span> ·
+                created <span th:text="${@fmt.time(t.createdAt)}">time</span>
+            </div>
+        </div>
+        <div class="txn-amount">
+            <div class="big-amount" th:text="${@fmt.money(t.amount)}">₹</div>
+            <span class="chip large" th:classappend="${'s-' + t.reconStatus}" th:text="${t.reconStatus}">STATUS</span>
+        </div>
+    </section>
+
+    <div class="notice" id="updated-notice" hidden>This transaction changed. <a href="">Reload</a> to see the latest.</div>
+
+    <section class="three-way">
+        <div class="card">
+            <h3>Ledger <span class="muted small">our system</span></h3>
+            <dl>
+                <dt>Status</dt><dd><span class="pill" th:text="${t.ledgerStatus}">S</span></dd>
+                <dt>Amount</dt><dd th:text="${@fmt.money(t.amount)}">₹</dd>
+                <dt>Gateway ref</dt><dd><code th:text="${t.gatewayRef}">ref</code></dd>
+                <dt>Fee adjustments</dt><dd th:text="${@fmt.money(t.feeAdjustment)}">₹0</dd>
+            </dl>
+        </div>
+        <div class="card">
+            <h3>Gateway <span class="muted small">captures</span></h3>
+            <p class="muted" th:if="${#lists.isEmpty(d.gatewayRecords())}">No gateway record.</p>
+            <dl th:each="g : ${d.gatewayRecords()}">
+                <dt>Ref</dt><dd><code th:text="${g.gatewayRef}">ref</code></dd>
+                <dt>Status</dt><dd><span class="pill" th:text="${g.status}">S</span></dd>
+                <dt>Amount / fee</dt><dd><span th:text="${@fmt.money(g.amount)}">₹</span> / <span th:text="${@fmt.money(g.fee)}">₹</span></dd>
+                <dt>UTR</dt><dd><code th:text="${g.utr ?: '-'}">utr</code></dd>
+            </dl>
+        </div>
+        <div class="card">
+            <h3>Bank <span class="muted small">settlement credits</span></h3>
+            <p class="muted" th:if="${#lists.isEmpty(d.bankCredits())}">No bank credit matched yet.</p>
+            <dl th:each="b : ${d.bankCredits()}">
+                <dt>Credit</dt><dd th:text="${@fmt.money(b.amount)}">₹</dd>
+                <dt>UTR</dt><dd><code th:text="${b.utr ?: '(missing)'}">utr</code></dd>
+                <dt>Narration</dt><dd class="small" th:text="${b.narration}">narration</dd>
+                <dt>Linked by</dt><dd th:text="${b.linkedTxnRef != null ? 'AI healing link' : 'UTR match'}">-</dd>
+            </dl>
+        </div>
+    </section>
+
+    <section class="card" th:if="${!#lists.isEmpty(d.exceptions())}">
+        <h2>Exceptions &amp; AI diagnosis</h2>
+        <div class="exception" th:each="x : ${d.exceptions()}">
+            <div class="exception-head">
+                <span class="tag" th:text="${x.type}">TYPE</span>
+                <span class="chip" th:classappend="${'d-' + x.state}" th:text="${x.state}">STATE</span>
+                <span class="muted small" th:text="'#' + ${x.id} + ' · ' + ${@fmt.time(x.createdAt)}">#1</span>
+            </div>
+            <p th:text="${x.detail}">detail</p>
+            <div class="ai-box" th:if="${x.aiRootCause}">
+                <div><span class="ai-chip">AI</span> <strong th:text="${x.aiRootCause}">root cause</strong>
+                    <span class="muted small" th:text="${'confidence ' + #numbers.formatPercent(x.aiConfidence, 1, 0) + ' · ' + x.aiSource}">conf</span></div>
+                <p th:text="${x.aiExplanation}">explanation</p>
+                <div class="small">Proposed fix: <strong th:text="${x.proposedAction != null ? x.proposedAction.label : '-'}">fix</strong></div>
+                <div class="small muted" th:text="${'Policy: ' + x.policyReason}">policy</div>
+            </div>
+            <div class="small" th:if="${x.resolution}"><strong>Outcome:</strong> <span th:text="${x.resolution}">res</span></div>
+            <div class="btn-row" sec:authorize="hasRole('ADMIN')" th:if="${x.state.name() == 'AWAITING_APPROVAL'}">
+                <form th:action="@{/exceptions/{id}/approve(id=${x.id})}" method="post" class="inline">
+                    <input type="hidden" name="back" th:value="${'/transactions/' + t.txnRef}">
+                    <button class="btn primary small" type="submit">Approve fix</button>
+                </form>
+                <form th:action="@{/exceptions/{id}/reject(id=${x.id})}" method="post" class="inline">
+                    <input type="hidden" name="back" th:value="${'/transactions/' + t.txnRef}">
+                    <input type="text" name="reason" placeholder="Reason (optional)" class="small-input">
+                    <button class="btn small" type="submit">Reject</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Status timeline</h2>
+        <ol class="timeline" id="timeline">
+            <li th:each="e : ${d.timeline()}" th:classappend="${'actor-' + e.actor}">
+                <div class="tl-dot"></div>
+                <div class="tl-body">
+                    <div><strong th:text="${e.stage}">STAGE</strong>
+                        <span class="actor" th:text="${e.actor}">ACTOR</span>
+                        <span class="muted small" th:text="${@fmt.time(e.occurredAt)}">time</span></div>
+                    <div th:text="${e.message}">message</div>
+                </div>
+            </li>
+        </ol>
+    </section>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

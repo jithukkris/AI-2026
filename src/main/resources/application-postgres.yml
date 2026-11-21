@@ -1,0 +1,10 @@
+# Profile: postgres  (used by docker-compose)
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/healpay}
+    username: ${DB_USER:healpay}
+    password: ${DB_PASSWORD:healpay}
+    hikari:
+      maximum-pool-size: 5
+  thymeleaf:
+    cache: true

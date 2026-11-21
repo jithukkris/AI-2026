@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Transactions')}"></head>
+<body data-page="transactions">
+<header th:replace="~{fragments :: nav}"></header>
+<main class="container">
+    <h1>Transactions</h1>
+    <form th:action="@{/transactions}" method="get" class="search">
+        <input type="search" name="q" th:value="${q}" placeholder="Search TXN ref, merchant or gateway ref…" autofocus>
+        <select name="status">
+            <option value="">All statuses</option>
+            <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${s == status}">S</option>
+        </select>
+        <button class="btn primary" type="submit">Search</button>
+    </form>
+
+    <div class="card no-pad">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Reference</th><th>Merchant</th><th>Mode</th><th class="num">Amount</th>
+                <th>Ledger</th><th>Reconciliation</th><th>Created</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${#lists.isEmpty(transactions)}"><td colspan="7" class="muted">No transactions found.</td></tr>
+            <tr th:each="t : ${transactions}">
+                <td><a th:href="@{/transactions/{r}(r=${t.txnRef})}" th:text="${t.txnRef}">TXN</a></td>
+                <td th:text="${t.merchant}">merchant</td>
+                <td th:text="${t.paymentMode}">UPI</td>
+                <td class="num" th:text="${@fmt.money(t.amount)}">₹</td>
+                <td><span class="pill" th:text="${t.ledgerStatus}">SUCCESS</span></td>
+                <td><span class="chip" th:classappend="${'s-' + t.reconStatus}" th:text="${t.reconStatus}">MATCHED</span></td>
+                <td class="muted small" th:text="${@fmt.time(t.createdAt)}">time</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="muted small" th:text="${#lists.size(transactions)} + ' result(s) (latest 500 searched)'">n results</p>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Ask AI')}"></head>
+<body data-page="assistant">
+<header th:replace="~{fragments :: nav}"></header>
+<main class="container narrow">
+    <h1>Ask AI</h1>
+    <p class="muted">Ask about any payment in plain language. The assistant looks up real data with
+        read-only tools - it cannot change anything.
+        <span class="badge" th:classappend="${aiSource == 'claude'} ? 'ai-live' : 'ai-mock'"
+              th:text="${aiSource == 'claude'} ? 'Claude (live)' : 'rule-based mock'">AI</span></p>
+
+    <div class="suggestions">
+        <button class="chip-btn" data-q="Give me a reconciliation summary">Reconciliation summary</button>
+        <button class="chip-btn" data-q="What is waiting for approval?">What needs approval?</button>
+        <button class="chip-btn" data-q="Show open exceptions">Open exceptions</button>
+        <button class="chip-btn" data-q="Why is TXN-100001 not reconciled?">Why is TXN-100001 not reconciled?</button>
+    </div>
+
+    <div class="chat" id="chat">
+        <div class="msg bot">Hi! I watch the ledger, gateway and bank feeds. What would you like to know?</div>
+    </div>
+
+    <form id="ask-form" class="ask">
+        <input type="text" id="question" placeholder="e.g. Why is TXN-100003 still pending?" autocomplete="off" required maxlength="500">
+        <button class="btn primary" type="submit">Ask</button>
+    </form>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

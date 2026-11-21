@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments :: head('Exceptions')}"></head>
+<body data-page="exceptions">
+<header th:replace="~{fragments :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments :: flash}"></div>
+    <h1>Exceptions</h1>
+    <p class="muted">Every mismatch the reconciliation engine found, what the AI thinks caused it,
+        and what the safety policy decided.</p>
+
+    <div class="tabs">
+        <a th:each="s : ${states}" th:href="@{/exceptions(state=${s})}" th:text="${s}"
+           th:classappend="${s == state} ? 'active'">STATE</a>
+    </div>
+
+    <p class="muted" th:if="${#lists.isEmpty(exceptions)}">No exceptions in this view. 🎉</p>
+
+    <div class="card exception" th:each="x : ${exceptions}">
+        <div class="exception-head">
+            <span class="muted small" th:text="'#' + ${x.id}">#1</span>
+            <a th:if="${x.txnRef}" th:href="@{/transactions/{r}(r=${x.txnRef})}" th:text="${x.txnRef}">TXN</a>
+            <span th:unless="${x.txnRef}" class="muted">Bank credit #<span th:text="${x.bankRecordId}">1</span></span>
+            <span class="tag" th:text="${x.type}">TYPE</span>
+            <span class="chip" th:classappend="${'d-' + x.state}" th:text="${x.state}">STATE</span>
+            <strong class="push-right" th:text="${@fmt.money(x.amountImpact)}">₹</strong>
+        </div>
+        <p th:text="${x.detail}">detail</p>
+        <div class="ai-box" th:if="${x.aiRootCause}">
+            <div><span class="ai-chip">AI</span> <strong th:text="${x.aiRootCause}">root cause</strong>
+                <span class="muted small" th:text="${'confidence ' + #numbers.formatPercent(x.aiConfidence, 1, 0) + ' · ' + x.aiSource}">conf</span></div>
+            <p th:text="${x.aiExplanation}">explanation</p>
+            <div class="small">Proposed fix: <strong th:text="${x.proposedAction != null ? x.proposedAction.label : '-'}">fix</strong></div>
+            <div class="small muted" th:text="${'Policy: ' + x.policyReason}">policy</div>
+        </div>
+        <div class="small" th:if="${x.resolution}"><strong>Outcome:</strong> <span th:text="${x.resolution}">res</span>
+            <span class="muted" th:if="${x.resolvedBy}" th:text="${'(' + x.resolvedBy + ')'}">by</span></div>
+        <div class="btn-row" sec:authorize="hasRole('ADMIN')" th:if="${x.state.name() == 'AWAITING_APPROVAL'}">
+            <form th:action="@{/exceptions/{id}/approve(id=${x.id})}" method="post" class="inline">
+                <input type="hidden" name="back" th:value="${'/exceptions?state=' + state}">
+                <button class="btn primary small" type="submit">Approve fix</button>
+            </form>
+            <form th:action="@{/exceptions/{id}/reject(id=${x.id})}" method="post" class="inline">
+                <input type="hidden" name="back" th:value="${'/exceptions?state=' + state}">
+                <input type="text" name="reason" placeholder="Reason (optional)" class="small-input">
+                <button class="btn small" type="submit">Reject</button>
+            </form>
+        </div>
+    </div>
+</main>
+<footer th:replace="~{fragments :: footer}"></footer>
+</body>
+</html>

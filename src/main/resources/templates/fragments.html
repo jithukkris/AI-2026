@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · HealPay AI'">HealPay AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+
+<body>
+<header th:fragment="nav" class="topbar">
+    <a class="brand" th:href="@{/}">
+        <span class="brand-mark">✓</span>
+        <span>HealPay <strong>AI</strong></span>
+    </a>
+    <nav>
+        <a th:href="@{/}" th:classappend="${page == 'dashboard'} ? 'active'">Dashboard</a>
+        <a th:href="@{/transactions}" th:classappend="${page == 'transactions'} ? 'active'">Transactions</a>
+        <a th:href="@{/exceptions}" th:classappend="${page == 'exceptions'} ? 'active'">Exceptions</a>
+        <a th:href="@{/assistant}" th:classappend="${page == 'assistant'} ? 'active'">Ask AI</a>
+        <a th:href="@{/swagger-ui.html}" target="_blank">API</a>
+    </nav>
+    <div class="user">
+        <span class="live-dot" id="live-dot" title="Live updates"></span>
+        <span sec:authentication="name">user</span>
+        <span class="role" sec:authorize="hasRole('ADMIN')">admin</span>
+        <span class="role viewer" sec:authorize="!hasRole('ADMIN')">viewer</span>
+        <form th:action="@{/logout}" method="post" class="inline">
+            <button type="submit" class="link">Sign out</button>
+        </form>
+    </div>
+</header>
+
+<div th:fragment="flash">
+    <div class="flash ok" th:if="${flash}" th:text="${flash}"></div>
+    <div class="flash err" th:if="${flashError}" th:text="${flashError}"></div>
+</div>
+
+<footer th:fragment="footer" class="footer">
+    HealPay AI · Self-healing payment balancing · Spring Boot + Spring AI ·
+    <span id="toast" class="toast"></span>
+</footer>
+</body>
+</html>

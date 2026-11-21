@@ -1,0 +1,26 @@
+# Override for a 1 GB Google Cloud e2-micro VM (free tier).
+#   docker compose -f docker-compose.yml -f docker-compose.gcp.yml up -d --build
+# Keeps total memory around 650 MB so the VM (with 2 GB swap) stays responsive.
+services:
+  db:
+    command: >
+      postgres
+      -c shared_buffers=32MB
+      -c work_mem=2MB
+      -c maintenance_work_mem=16MB
+      -c max_connections=20
+    deploy:
+      resources:
+        limits:
+          memory: 192m
+
+  app:
+    # Bind to localhost only - expose publicly through Cloudflare Tunnel or Nginx (HTTPS).
+    ports: !override
+      - "127.0.0.1:8080:8080"
+    environment:
+      JAVA_OPTS: "-Xms128m -Xmx320m -XX:MaxMetaspaceSize=160m -XX:+UseSerialGC -Xss512k"
+    deploy:
+      resources:
+        limits:
+          memory: 560m
